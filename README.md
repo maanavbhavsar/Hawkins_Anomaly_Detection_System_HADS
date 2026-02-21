@@ -1,6 +1,6 @@
 # Hawkins Lab: Interdimensional Anomaly Detection
 
-A **Stranger Things–themed** AI system that monitors simulated lab sensors for unusual activity. It uses **AWS Bedrock** for real-time themed explanations of anomalies and **Datadog** for metrics, visualization, and alerts. The system detects multi-sensor anomalies, scores “Upside Down breach” severity (1–10), and includes an optional **Streamlit** dashboard.
+A **Stranger Things–themed** AI system that monitors simulated lab sensors for unusual activity. It uses **AWS Bedrock** for real-time themed explanations of anomalies, **Datadog** for metrics and embedded dashboards, and **MiniMax** for voice alerts. The system detects multi-sensor anomalies, scores “Upside Down breach” severity (1–10), and includes an optional **Streamlit** dashboard with embedded Datadog views.
 
 ---
 
@@ -10,8 +10,19 @@ A **Stranger Things–themed** AI system that monitors simulated lab sensors for
 - **Detects anomalies** via threshold and z-score methods.
 - **Computes breach level** (0–10) from how many sensors trigger; multi-sensor = higher “Upside Down” severity.
 - **AWS Bedrock**: Generates Stranger Things–style explanations for each anomaly (or fallback messages if Bedrock is off).
-- **Datadog**: Sends sensor metrics, anomaly events, and breach level; can create a dashboard.
-- **Streamlit**: Themed dashboard to take readings, view history, and see AI explanations.
+- **Datadog**: Sends sensor metrics, anomaly events, and breach level; Streamlit embeds Lab Sensors, Breach Level, and Anomaly Events dashboards (embed URLs; allowlist referrer in Datadog).
+- **MiniMax**: Optional TTS voice alerts on anomaly — speaks only “Alert! Alert! Alert!” or “Warning! Warning! Warning!” (autoplay in Streamlit; system player in CLI).
+- **Streamlit**: Themed dashboard to take readings, view history, AI explanations, embedded Datadog dashboards, and optional voice alert; auto-refresh every 10 seconds.
+
+---
+
+## Screenshots
+
+| Streamlit dashboard | Datadog monitoring |
+|---------------------|--------------------|
+| ![Streamlit dashboard](SS1.png) | ![Datadog dashboards](SS2.png) |
+
+*Left: Hawkins Lab Streamlit UI — sensor readings, breach level, AI analysis, and voice alert. Right: Datadog dashboards (Lab Sensor Monitoring, Breach Level, Anomaly Events) showing live metrics.*
 
 ---
 
@@ -19,12 +30,13 @@ A **Stranger Things–themed** AI system that monitors simulated lab sensors for
 
 ```
 ├── main.py                    # CLI pipeline (sensors → detect → breach → Bedrock → Datadog)
-├── streamlit_app.py            # Themed Streamlit dashboard
+├── streamlit_app.py            # Themed Streamlit dashboard (embeds Datadog, 10s refresh, voice)
 ├── sensor_simulator.py        # Lab sensor data simulation
 ├── anomaly_detector.py        # Threshold + z-score anomaly detection
 ├── breach_correlator.py       # Upside Down breach level (0–10)
 ├── aws_bedrock_integration.py # Stranger Things AI explanations (Bedrock)
 ├── datadog_metrics.py         # Datadog metrics, events, dashboard creation
+├── minimax_voice.py           # MiniMax TTS: "Alert! Alert! Alert!" / "Warning! Warning! Warning!"
 ├── requirements.txt
 ├── .env.example               # Template for secrets (copy to .env)
 └── README.md
@@ -37,6 +49,7 @@ A **Stranger Things–themed** AI system that monitors simulated lab sensors for
 - **Python 3.10+**
 - **AWS account** with Bedrock access and Claude model enabled.
 - **Datadog account** and API + Application keys (see Configuration below).
+- **MiniMax** (optional): API key and Group ID for voice alerts (TTS).
 
 ---
 
@@ -76,13 +89,13 @@ Press **Ctrl+C** to stop.
 
 ### 2. Streamlit dashboard
 
-Themed UI: take readings, see breach level, sensor history charts, and AI explanations:
+Themed UI: take readings, breach level, sensor history charts, AI explanations, and **embedded Datadog dashboards** (Lab Sensors, Breach Level, Anomaly Events). Optional **voice alert** (MiniMax) plays automatically on anomaly (“Alert! Alert! Alert!” or “Warning! Warning! Warning!”).
 
 ```bash
 streamlit run streamlit_app.py
 ```
 
-Use **Take reading** in the sidebar; optionally enable **Auto-refresh** for periodic updates.
+Use **Take reading** in the sidebar. Enable **Auto-refresh (every 10s)** for updates every 10 seconds. In Datadog, use **Share → Embed** for each dashboard and allowlist your Streamlit origin (e.g. `http://localhost:8501`) so the iframes load.
 
 ### 3. Test individual modules
 
@@ -106,6 +119,13 @@ python aws_bedrock_integration.py   # Bedrock/fallback explanation demo
 | `DD_API_KEY` | Datadog API key | — |
 | `DD_APP_KEY` | Datadog Application key | — |
 | `DD_SITE` | Datadog site | `datadoghq.com` |
+| `DD_EMBED_LAB_SENSORS` | (Optional) Datadog embed URL for Lab Sensors | built-in embed URL |
+| `DD_EMBED_BREACH_LEVEL` | (Optional) Datadog embed URL for Breach Level | built-in embed URL |
+| `DD_EMBED_ANOMALY_EVENTS` | (Optional) Datadog embed URL for Anomaly Events | built-in embed URL |
+| `MINIMAX_API_KEY` | (Optional) MiniMax API key for TTS | — |
+| `MINIMAX_GROUP_ID` | (Optional) MiniMax group ID for TTS | — |
+| `ENABLE_VOICE_ALERT` | Enable MiniMax voice alert on anomaly | `true` |
+| `VOICE_ALERT_PREFIX` | TTS phrase: `Alert! Alert! Alert!` or `Warning! Warning! Warning!` | `Alert! Alert! Alert!` |
 | `SENSOR_ID` | Sensor station ID | `HAWKINS-LAB-001` |
 | `LOCATION` | Location tag | `main_lab` |
 | `POLLING_INTERVAL` | Seconds between readings (CLI) | `5.0` |
@@ -117,8 +137,9 @@ python aws_bedrock_integration.py   # Bedrock/fallback explanation demo
 ## Setup
 
 1. **AWS**: Use an account with Bedrock access; enable Claude in `us-east-1`; create IAM access keys and add to `.env`.
-2. **Datadog**: Create an account, copy API key and create an Application key in Organization Settings, add to `.env`.
-3. **.env**: Copy `.env.example` to `.env`, fill in your keys, and do not commit `.env`.
+2. **Datadog**: Create an account, copy API key and create an Application key in Organization Settings, add to `.env`. For Streamlit embeds, use Share → Embed on each dashboard and allowlist `http://localhost:8501` (or your app URL).
+3. **MiniMax** (optional): Add `MINIMAX_API_KEY` and `MINIMAX_GROUP_ID` to `.env` for voice alerts. Set `VOICE_ALERT_PREFIX=Warning! Warning! Warning!` for the alternate phrase.
+4. **.env**: Copy `.env.example` to `.env`, fill in your keys, and do not commit `.env`.
 
 ---
 
@@ -127,6 +148,7 @@ python aws_bedrock_integration.py   # Bedrock/fallback explanation demo
 - **Metrics**: `lab.sensor.temperature`, `lab.sensor.gas`, `lab.sensor.vibration`, `lab.sensor.cpu_usage`, `lab.anomaly.detected`, `lab.breach.level`.
 - **Events**: Anomaly alerts with title like “Upside Down breach detected! Level X/10”.
 - **Dashboard**: Use `DatadogMetricsClient().create_sensor_dashboard()` once (or create widgets in the UI for the metrics above).
+- **Streamlit embeds**: The app embeds three dashboards (Lab Sensor Monitoring, Breach Level, Anomaly Events) via `p.datadoghq.com/sb/embed/...` URLs. In Datadog, use **Share → Embed** on each dashboard and add your Streamlit origin to allowed referrers (e.g. `http://localhost:8501`).
 
 ---
 
@@ -143,10 +165,16 @@ python aws_bedrock_integration.py   # Bedrock/fallback explanation demo
         │                           │              │  AWS Bedrock        │
         │                           │              │  (Stranger Things   │
         │                           │              │   explanations)     │
+        │                           │              └──────────┬──────────┘
+        │                           │                         │
+        │                           │                         ▼
+        │                           │              ┌─────────────────────┐
+        │                           │              │  MiniMax (optional)  │
+        │                           │              │  Voice: Alert! x3   │
         │                           │              └─────────────────────┘
         ▼                           ▼
 ┌─────────────────────────────────────────────────────────────────────────┐
-│  Datadog: metrics (sensors, breach level), events (anomaly alerts)         │
+│  Datadog: metrics (sensors, breach level), events, embedded dashboards   │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
