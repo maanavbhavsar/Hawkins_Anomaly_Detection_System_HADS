@@ -74,6 +74,8 @@ def init_session_state():
         st.session_state.history = []
     if "last_reading" not in st.session_state:
         st.session_state.last_reading = None  # (data, result, breach, ai_text)
+    if "sticky_alert" not in st.session_state:
+        st.session_state.sticky_alert = None  # (data, result, breach, ai_text, audio_b64) or None; stays until dismissed
     if "detector" not in st.session_state:
         st.session_state.detector = AnomalyDetector(use_zscore=True)
     if "bedrock" not in st.session_state:
@@ -85,7 +87,7 @@ def init_session_state():
         st.session_state.max_history = 50
 
 
-def take_reading(sensor_id: str, location: str):
+def take_reading(sensor_id: str, location: str, voice_alert: bool = True):
     data = generate_sensor_data(sensor_id=sensor_id, location=location)
     detector = st.session_state.detector
     result = detector.analyze(data)
@@ -120,6 +122,21 @@ def take_reading(sensor_id: str, location: str):
             ai_text = get_fallback_explanation(anomaly_list[0])
 
     st.session_state.last_reading = (data, result, breach, ai_text)
+    # Set sticky alert on first anomaly so it stays until user acknowledges
+    if result.get("anomaly_detected") and st.session_state.sticky_alert is None:
+        audio_b64 = None
+        if voice_alert and ai_text:
+            try:
+                import base64
+                from minimax_voice import generate_speech, build_voice_alert_text
+                voice_text = build_voice_alert_text()
+                path = generate_speech(voice_text)
+                if path:
+                    with open(path, "rb") as f:
+                        audio_b64 = base64.b64encode(f.read()).decode()
+            except Exception:
+                pass
+        st.session_state.sticky_alert = (data, result, breach, ai_text, audio_b64)
     return data, result, breach, ai_text
 
 
@@ -163,9 +180,9 @@ st.markdown("---")
 # Take new reading on button (or first auto-refresh)
 if take_one:
     with st.spinner("Scanning for interdimensional activity..."):
-        take_reading(sensor_id, location)
+        take_reading(sensor_id, location, voice_alert=voice_alert)
 
-# Display last reading (current state)
+# Display last reading: sensor metrics always from current reading
 last = st.session_state.last_reading
 if last:
     data, result, breach, ai_text = last
@@ -183,32 +200,52 @@ if last:
         st.metric("CPU", f"{data['readings']['cpu_usage']['value']} %",
                   "⚠️ Anomaly" if data["readings"]["cpu_usage"]["is_anomaly"] else "✓")
 
-    st.markdown(f"""
-    <div class="breach-box">
-        <strong>🔮 UPSIDE DOWN BREACH LEVEL: {breach.level}/10</strong> — {breach.label}<br/>
-        <small>{breach.recommendation}</small>
-    </div>
-    """, unsafe_allow_html=True)
-
-    if ai_text:
+    # Alert block: show sticky alert until acknowledged, else show current reading's breach/AI/audio
+    sticky = st.session_state.get("sticky_alert")
+    if sticky:
+        _data, _result, _breach, _ai_text, _audio_b64 = sticky
+        st.markdown(f"""
+        <div class="breach-box">
+            <strong>🔮 UPSIDE DOWN BREACH LEVEL: {_breach.level}/10</strong> — {_breach.label}<br/>
+            <small>{_breach.recommendation}</small>
+        </div>
+        """, unsafe_allow_html=True)
         st.markdown("#### 🎬 AI Analysis (Hawkins Lab)")
-        st.markdown(f'<div class="ai-quote">« {ai_text} »</div>', unsafe_allow_html=True)
-        if voice_alert:
-            try:
-                import base64
-                from minimax_voice import generate_speech, build_voice_alert_text
-                voice_text = build_voice_alert_text()
-                path = generate_speech(voice_text)
-                if path:
-                    with open(path, "rb") as f:
-                        audio_bytes = f.read()
-                    b64 = base64.b64encode(audio_bytes).decode()
-                    st.markdown(
-                        f'<audio autoplay controls><source src="data:audio/mp3;base64,{b64}" type="audio/mp3"></audio>',
-                        unsafe_allow_html=True,
-                    )
-            except Exception:
-                pass
+        st.markdown(f'<div class="ai-quote">« {_ai_text} »</div>', unsafe_allow_html=True)
+        if _audio_b64:
+            st.markdown(
+                f'<audio controls><source src="data:audio/mp3;base64,{_audio_b64}" type="audio/mp3"></audio>',
+                unsafe_allow_html=True,
+            )
+        if st.button("Acknowledge", key="dismiss_alert", type="primary"):
+            st.session_state.sticky_alert = None
+            st.rerun()
+    else:
+        st.markdown(f"""
+        <div class="breach-box">
+            <strong>🔮 UPSIDE DOWN BREACH LEVEL: {breach.level}/10</strong> — {breach.label}<br/>
+            <small>{breach.recommendation}</small>
+        </div>
+        """, unsafe_allow_html=True)
+        if ai_text:
+            st.markdown("#### 🎬 AI Analysis (Hawkins Lab)")
+            st.markdown(f'<div class="ai-quote">« {ai_text} »</div>', unsafe_allow_html=True)
+            if voice_alert:
+                try:
+                    import base64
+                    from minimax_voice import generate_speech, build_voice_alert_text
+                    voice_text = build_voice_alert_text()
+                    path = generate_speech(voice_text)
+                    if path:
+                        with open(path, "rb") as f:
+                            audio_bytes = f.read()
+                        b64 = base64.b64encode(audio_bytes).decode()
+                        st.markdown(
+                            f'<audio autoplay controls><source src="data:audio/mp3;base64,{b64}" type="audio/mp3"></audio>',
+                            unsafe_allow_html=True,
+                        )
+                except Exception:
+                    pass
 else:
     st.info("👆 Click **Take reading** in the sidebar to start monitoring.")
 
@@ -245,8 +282,8 @@ with tab2:
 with tab3:
     _embed_dashboard(_DD_ANOMALY_EVENTS)
 
-# Auto-refresh: take a new reading every 5 seconds (data stays visible between updates)
+# Auto-refresh: take a new reading every 5 seconds (sensor metrics update; sticky alert stays until acknowledged)
 if auto_refresh:
     time.sleep(5)
-    take_reading(sensor_id, location)
+    take_reading(sensor_id, location, voice_alert=voice_alert)
     st.rerun()
