@@ -24,6 +24,10 @@ A **Stranger Things–themed** AI system that monitors simulated lab sensors for
 
 *Left: Hawkins Lab Streamlit UI — sensor readings, breach level, AI analysis, and voice alert. Right: Datadog dashboards showing live metrics.*
 
+**Anomaly alert and MiniMax voice** — When an anomaly is detected, the app shows the breach level (e.g. “UPSIDE DOWN BREACH LEVEL: 4/10”), AI analysis from Bedrock, and an audio player that plays **“Alert! Alert! Alert!”** via MiniMax TTS.
+
+![Alert and voice — breach level, AI analysis, MiniMax voice alert playing when an anomaly is detected](Alert.png)
+
 ---
 
 ## Project Structure
