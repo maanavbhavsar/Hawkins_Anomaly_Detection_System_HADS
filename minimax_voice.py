@@ -1,7 +1,7 @@
 """
 MiniMax Text-to-Speech voice alerts for Hawkins Lab.
 Plays the anomaly explanation (or a short alert) when an anomaly is detected.
-Set MINIMAX_API_KEY in .env to enable. Optional: ENABLE_VOICE_ALERT=true
+Set in .env: MINIMAX_API_KEY, MINIMAX_GROUP_ID. Optional: ENABLE_VOICE_ALERT=true
 """
 import os
 import tempfile
@@ -12,13 +12,14 @@ from dotenv import load_dotenv
 load_dotenv()
 
 MINIMAX_API_KEY = os.getenv("MINIMAX_API_KEY", "")
+MINIMAX_GROUP_ID = os.getenv("MINIMAX_GROUP_ID", "")
 ENABLE_VOICE_ALERT = os.getenv("ENABLE_VOICE_ALERT", "true").lower() == "true"
 T2A_URL = "https://api.minimax.io/v1/t2a_v2"
 
 
 def _call_minimax_t2a(text: str) -> bytes | None:
     """Call MiniMax T2A API; return raw MP3 bytes or None."""
-    if not MINIMAX_API_KEY or not text.strip():
+    if not MINIMAX_API_KEY or not MINIMAX_GROUP_ID or not text.strip():
         return None
     try:
         import requests
@@ -29,6 +30,7 @@ def _call_minimax_t2a(text: str) -> bytes | None:
     text = text.strip()[:1500]
     payload = {
         "model": "speech-2.8-turbo",
+        "group_id": MINIMAX_GROUP_ID,
         "text": text,
         "stream": False,
         "output_format": "hex",
@@ -71,7 +73,7 @@ def generate_speech(text: str) -> str | None:
     Convert text to speech via MiniMax; save to a temp file.
     Returns path to the temp MP3 file, or None on failure.
     """
-    if not ENABLE_VOICE_ALERT or not MINIMAX_API_KEY:
+    if not ENABLE_VOICE_ALERT or not MINIMAX_API_KEY or not MINIMAX_GROUP_ID:
         return None
     raw = _call_minimax_t2a(text)
     if not raw:
