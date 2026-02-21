@@ -20,9 +20,11 @@ A **Stranger Things–themed** AI system that monitors simulated lab sensors for
 
 | Streamlit dashboard | Datadog monitoring |
 |---------------------|--------------------|
-| ![Streamlit dashboard](SS1.png) | ![Datadog dashboards](SS2.png) |
+| ![Streamlit dashboard](assets/streamlit-dashboard.png) | ![Datadog dashboards](assets/datadog-dashboard.png) |
 
 *Left: Hawkins Lab Streamlit UI — sensor readings, breach level, AI analysis, and voice alert. Right: Datadog dashboards (Lab Sensor Monitoring, Breach Level, Anomaly Events) showing live metrics.*
+
+*Add your screenshots to the `assets/` folder as `streamlit-dashboard.png` and `datadog-dashboard.png` to display them here.*
 
 ---
 
@@ -37,6 +39,7 @@ A **Stranger Things–themed** AI system that monitors simulated lab sensors for
 ├── aws_bedrock_integration.py # Stranger Things AI explanations (Bedrock)
 ├── datadog_metrics.py         # Datadog metrics, events, dashboard creation
 ├── minimax_voice.py           # MiniMax TTS: "Alert! Alert! Alert!" / "Warning! Warning! Warning!"
+├── assets/                    # Screenshots (streamlit-dashboard.png, datadog-dashboard.png)
 ├── requirements.txt
 ├── .env.example               # Template for secrets (copy to .env)
 └── README.md
