@@ -62,13 +62,13 @@ SENSOR_CONFIG = {
     },
 }
 
-# Probability of generating an anomaly (10%)
-ANOMALY_PROBABILITY = 0.005
+# Probability of generating an anomaly per sensor (~1 anomaly every 30 sec at 5s cycle)
+ANOMALY_PROBABILITY = 0.04
 
 
 def generate_sensor_value(sensor_name: str) -> tuple[float, bool]:
     """
-    Generate a sensor reading, with a 10% chance of being anomalous.
+    Generate a sensor reading, with ANOMALY_PROBABILITY chance of being anomalous.
     
     Args:
         sensor_name: Name of the sensor (must exist in SENSOR_CONFIG)
