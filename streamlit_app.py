@@ -132,7 +132,7 @@ sensor_id = st.sidebar.text_input("Sensor ID", value="HAWKINS-LAB-001")
 location = st.sidebar.text_input("Location", value="main_lab")
 st.sidebar.markdown("---")
 take_one = st.sidebar.button("📡 Take reading")
-auto_refresh = st.sidebar.checkbox("Auto-refresh (every 10s)", value=False)
+auto_refresh = st.sidebar.checkbox("Auto-refresh (every 5s)", value=False)
 voice_alert = st.sidebar.checkbox("Play voice alert (MiniMax)", value=True)
 st.sidebar.markdown("---")
 st.sidebar.markdown("### 📊 Datadog")
@@ -245,8 +245,8 @@ with tab2:
 with tab3:
     _embed_dashboard(_DD_ANOMALY_EVENTS)
 
-# Auto-refresh: take a new reading every 10 seconds (data stays visible between updates)
+# Auto-refresh: take a new reading every 5 seconds (data stays visible between updates)
 if auto_refresh:
-    time.sleep(10)
+    time.sleep(5)
     take_reading(sensor_id, location)
     st.rerun()
