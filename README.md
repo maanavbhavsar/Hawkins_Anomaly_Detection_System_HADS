@@ -1,6 +1,8 @@
-# Hawkins Lab: Interdimensional Anomaly Detection
+# Hawkins Lab: Interdimensional Anomaly Detection (HADS)
 
-A **Stranger Things–themed** AI system that monitors simulated lab sensors for unusual activity. It uses **AWS Bedrock** (Claude Opus 4.6) for real-time themed explanations of anomalies, **Datadog** for metrics and **embedded dashboards** in the app, and **MiniMax** for **voice alerts** when an anomaly is detected. The system scores “Upside Down breach” severity (0–10) and includes an optional **Streamlit** dashboard with embedded Datadog views and optional TTS alerts.
+🏆 Built for the **AWS x Datadog Hackathon**
+
+A **Stranger Things–themed** AI system that monitors simulated lab sensors for unusual activity. It uses **AWS Bedrock** (Claude Opus 4.6) for real-time themed explanations, **Datadog** for metrics and **embedded dashboards**, and **MiniMax** for **voice alerts** when anomalies occur. The system scores **“Upside Down breach”** severity (0–10) and includes an optional **Streamlit** dashboard with embedded Datadog views and TTS alerts.
 
 ---
 
