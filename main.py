@@ -140,8 +140,9 @@ def run_pipeline(
             print("\n  HAWKINS AI ANALYSIS:")
             print(f"  \" {explanation} \"")
             try:
-                from minimax_voice import speak_alert
-                if speak_alert(explanation):
+                from minimax_voice import speak_alert, build_voice_alert_text
+                voice_text = build_voice_alert_text(explanation)
+                if speak_alert(voice_text):
                     print("  [Voice alert played]")
             except Exception:
                 pass

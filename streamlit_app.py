@@ -5,9 +5,13 @@ Interactive dashboard for sensor data, breach level, and AI explanations.
 Run: streamlit run streamlit_app.py
 """
 
+import os
 import time
 import streamlit as st
 import pandas as pd
+from dotenv import load_dotenv
+
+load_dotenv()
 
 from sensor_simulator import generate_sensor_data
 from anomaly_detector import AnomalyDetector
@@ -18,6 +22,11 @@ from aws_bedrock_integration import (
     get_fallback_explanation,
 )
 from main import anomaly_result_to_anomaly_data_list
+
+# Datadog dashboard URLs — embed URLs from Share → Embed (referrer e.g. http://localhost:8501 must be allowlisted)
+_DD_LAB_SENSORS = os.getenv("DD_EMBED_LAB_SENSORS", "https://p.datadoghq.com/sb/embed/bfdb63b2-0c07-11f1-831f-929eff2735cf-f78f691e60991913f7b34a4dc044b50a")
+_DD_BREACH_LEVEL = os.getenv("DD_EMBED_BREACH_LEVEL", "https://p.datadoghq.com/sb/embed/bfdb63b2-0c07-11f1-831f-929eff2735cf-a96aa6b105a2d4e0d4c06c3356c7ae40")
+_DD_ANOMALY_EVENTS = os.getenv("DD_EMBED_ANOMALY_EVENTS", "https://p.datadoghq.com/sb/embed/bfdb63b2-0c07-11f1-831f-929eff2735cf-fd7e0c5488bcba70196a198d717dc6bc")
 
 # Page config
 st.set_page_config(
@@ -123,8 +132,26 @@ sensor_id = st.sidebar.text_input("Sensor ID", value="HAWKINS-LAB-001")
 location = st.sidebar.text_input("Location", value="main_lab")
 st.sidebar.markdown("---")
 take_one = st.sidebar.button("📡 Take reading")
-auto_refresh = st.sidebar.checkbox("Auto-refresh (every 5s)", value=False)
+auto_refresh = st.sidebar.checkbox("Auto-refresh (every 10s)", value=False)
 voice_alert = st.sidebar.checkbox("Play voice alert (MiniMax)", value=True)
+st.sidebar.markdown("---")
+st.sidebar.markdown("### 📊 Datadog")
+st.sidebar.caption("Dashboards are embedded below. Open in new tab:")
+st.sidebar.markdown(
+    f'<a href="{_DD_LAB_SENSORS}" target="_blank" rel="noopener">Lab Sensors</a> · '
+    f'<a href="{_DD_BREACH_LEVEL}" target="_blank" rel="noopener">Breach</a> · '
+    f'<a href="{_DD_ANOMALY_EVENTS}" target="_blank" rel="noopener">Anomaly</a>',
+    unsafe_allow_html=True,
+)
+with st.sidebar.expander("Datadog anomaly monitor"):
+    st.caption(
+        "This app sends raw metrics (lab.sensor.*) to Datadog. To use Datadog's native anomaly detection: "
+        "Monitors → New Monitor → Metric → e.g. avg:lab.sensor.temperature → Detection: Anomaly → Save."
+    )
+    st.markdown(
+        '<a href="https://app.datadoghq.com/monitors/create" target="_blank" rel="noopener">Create monitor</a>',
+        unsafe_allow_html=True,
+    )
 st.sidebar.markdown("---")
 st.sidebar.caption("Interdimensional Anomaly Detection • AWS Bedrock + Datadog")
 
@@ -168,11 +195,18 @@ if last:
         st.markdown(f'<div class="ai-quote">« {ai_text} »</div>', unsafe_allow_html=True)
         if voice_alert:
             try:
-                from minimax_voice import generate_speech
-                path = generate_speech(ai_text)
+                import base64
+                from minimax_voice import generate_speech, build_voice_alert_text
+                voice_text = build_voice_alert_text()
+                path = generate_speech(voice_text)
                 if path:
                     with open(path, "rb") as f:
-                        st.audio(f.read(), format="audio/mp3")
+                        audio_bytes = f.read()
+                    b64 = base64.b64encode(audio_bytes).decode()
+                    st.markdown(
+                        f'<audio autoplay controls><source src="data:audio/mp3;base64,{b64}" type="audio/mp3"></audio>',
+                        unsafe_allow_html=True,
+                    )
             except Exception:
                 pass
 else:
@@ -189,8 +223,30 @@ if st.session_state.history:
     st.caption("Breach level over time")
     st.bar_chart(df.set_index("timestamp")[["breach_level"]], height=200)
 
-# Auto-refresh: take a new reading every 5 seconds
+# Embedded Datadog dashboards (referrer must be allowlisted in Datadog Share → Embed, e.g. http://localhost:8501/)
+st.markdown("---")
+st.subheader("📊 Datadog dashboards")
+tab1, tab2, tab3 = st.tabs(["Lab Sensor Monitoring", "Breach Level", "Anomaly events"])
+_EMBED_HEIGHT = 620
+
+
+def _embed_dashboard(url: str, height: int = _EMBED_HEIGHT) -> None:
+    if not url or not url.startswith("http"):
+        st.warning("Dashboard URL not configured. Set DD_EMBED_* in .env if using embed URLs.")
+        return
+    html = f'<iframe src="{url}" width="100%" height="{height}" frameborder="0" allow="fullscreen" style="border-radius:8px;"></iframe>'
+    st.components.v1.html(html, height=height, scrolling=True)
+
+
+with tab1:
+    _embed_dashboard(_DD_LAB_SENSORS)
+with tab2:
+    _embed_dashboard(_DD_BREACH_LEVEL)
+with tab3:
+    _embed_dashboard(_DD_ANOMALY_EVENTS)
+
+# Auto-refresh: take a new reading every 10 seconds (data stays visible between updates)
 if auto_refresh:
-    time.sleep(5)
+    time.sleep(10)
     take_reading(sensor_id, location)
     st.rerun()
