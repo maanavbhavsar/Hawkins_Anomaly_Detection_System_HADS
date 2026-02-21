@@ -14,7 +14,16 @@ load_dotenv()
 MINIMAX_API_KEY = os.getenv("MINIMAX_API_KEY", "")
 MINIMAX_GROUP_ID = os.getenv("MINIMAX_GROUP_ID", "")
 ENABLE_VOICE_ALERT = os.getenv("ENABLE_VOICE_ALERT", "true").lower() == "true"
+# TTS speaks only this phrase (no explanation). Set to "Warning! Warning! Warning!" for the other option.
+VOICE_ALERT_PHRASE = os.getenv("VOICE_ALERT_PREFIX", "Alert! Alert! Alert!").strip() or "Alert! Alert! Alert!"
 T2A_URL = "https://api.minimax.io/v1/t2a_v2"
+
+
+def build_voice_alert_text(full_explanation: str = "") -> str:
+    """
+    Return the voice alert phrase only: "Alert! Alert! Alert!" or "Warning! Warning! Warning!" (no extra text).
+    """
+    return VOICE_ALERT_PHRASE
 
 
 def _call_minimax_t2a(text: str) -> bytes | None:
